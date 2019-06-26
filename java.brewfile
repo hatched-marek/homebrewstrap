@@ -1,3 +1,4 @@
 cask "java"
 brew "maven"
 brew "maven-completion"
+cask "intellij-idea-ce"

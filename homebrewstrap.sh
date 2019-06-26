@@ -54,16 +54,16 @@ if ! id -Gn | grep -e "\badmin\b" >/dev/null 2>&1; then
     exit -1;
 fi
 
-_boot "CREATE: ~/.bash_profile_homebrewstrap, a place for homebrewstrap introduced shell configurations. We will source it form you ~/.bash_profile"
+_boot "CREATE: ~/.bash_profile_homebrewstrap"
 
 if [ -f "$HOME/.bash_profile_homebrewstrap" ]; then
-    _warn "You already have: ~/.bash_profile_homebrewstrap - this file is recreated on each run. You should not add any customizations to this file."
+    _warn "Found existing file: ~/.bash_profile_homebrewstrap"
     _confirm_or_exit "You may want to examine that file contents first. Can we continue with recreating this file ?"
 fi
 
-_act "Creating ~/.bash_profile_homebrewstrap file where we will write config settings and source .bashrc, see...: http://www.joshstaiger.org/archives/2005/07/bash_profile_vs.html"
+_act "Creating ~/.bash_profile_homebrewstrap file and sourcing .bashrc, see...: http://www.joshstaiger.org/archives/2005/07/bash_profile_vs.html"
 
-echo -e '#!/bin/bash\n# DO NOT EDIT. managed by homebrewstrap.sh \n# For macOS source bashrc from bash_profile\n[[ -e "$HOME/.bashrc" ]] && source "$HOME/.bashrc"' > "$HOME/.bash_profile_homebrewstrap"
+echo -e '# DO NOT EDIT. managed by homebrewstrap.sh \n# For macOS source bashrc from bash_profile\n[[ -e "$HOME/.bashrc" ]] && source "$HOME/.bashrc"' > "$HOME/.bash_profile_homebrewstrap"
 
 _act "Adjusting PATH to favor homebrew installed tools"
 echo 'export PATH="/usr/local/bin:/usr/local/sbin:$PATH" #favor homebrew installed tools' >> ~/.bash_profile_homebrewstrap
@@ -72,7 +72,7 @@ if cat "$HOME/.bash_profile" | grep bash_profile_homebrewstrap ; then
     _skip "Your ~/.bash_profile already has entry for ~/.bash_profile_homebrewstrap. Please verify that you source it correctly"
 else
     _act "setting source ~/.bash_profile_homebrewstrap in your ~/.bash_profile"
-    echo 'source $HOME/.bash_profile_homebrewstrap' >> ~/.bash_profile
+    echo -e '\n# Managed by homebrewstrap.sh\nsource $HOME/.bash_profile_homebrewstrap' >> ~/.bash_profile
 fi
 
 _boot "Homebrew Package Manager"
@@ -85,8 +85,10 @@ else
 fi
 
 _boot "Use Homebrew to install or upgrade packages"
-_act "Installing tools from homebrewstrap.brewfile"
-brew bundle --file=homebrewstrap.brewfile
+_act "Installing Sensible Developer Tools"
+if _confirm_yes "Install tools listed in homebrewstrap.brewfile ?"; then
+    brew bundle --file=homebrewstrap.brewfile
+fi
 
 _act "config bash-completion installed with brew"
 echo '[ -f /usr/local/etc/bash_completion ] && . /usr/local/etc/bash_completion' >> ~/.bash_profile_homebrewstrap
@@ -120,8 +122,8 @@ _boot "NodeJS Programming Envieronment"
 if _confirm_yes "Install node with nvm? "; then
 
     _act "Installing nvm based on community recommendation, see...: https://github.com/creationix/nvm#installation"
-    _info "Installing release: https://github.com/creationix/nvm/releases/tag/v0.33.11"
-    curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install.sh | bash
+    _info "Installing release: https://github.com/creationix/nvm/releases/tag/v0.34.0"
+    curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.34.0/install.sh | bash
 
     _info "~/.nvm dir is now a git repo. Installation modified your ~/.bashrc"
     _act "Activating nvm by sourcing ~/.bash_profile"
@@ -194,17 +196,18 @@ if _confirm_yes "install rbenv ruby environment? "; then
     _act "Setting global ruby version to: $ruby_version"
     rbenv global $ruby_version
 
+    _act "Do not generate docs after installing gems. See ~/.gemrc"
+    echo "gem: --no-document" > ~/.gemrc
+
     _act "Installing bundler and setting sensible configuration"
     gem install bundler --source https://rubygems.org/ -N
     number_of_cores=$(sysctl -n hw.ncpu)
     bundle config --global jobs $((number_of_cores - 1))
 
-    _act "Do not generate docs after installing gems. See ~/.gemrc"
-    echo "gem: --no-document" > ~/.gemrc
 
 fi # ruby
 
-_boot "DONE: Please review the homebrewstrap README file for additional gotchas and recommended configurations"
+_boot "DONE: Please review the README"
 _info "You may execute brew cleanup && brew cask cleanup to do some housecleaning"
 _info "Please examine ~/.bash_profile_homebrewstrap to see what we configured there. We source it from ~/.bash_profile"
 _info "It is safe to rerun this script to install sections you have skipped BUT ONLY if you copy over the contents from ~/.bash_profile_homebrewstrap into ~/.bash_profile; since we will recreate ~/.bash_profile_homebrewstrap on each run"
